@@ -1,0 +1,4 @@
+# Caddy gets HTTPS certificates automatically and proxies WebSockets without extra config.
+draw.example.com {
+	reverse_proxy 127.0.0.1:3000
+}

@@ -1,0 +1,28 @@
+# podman-compose up -d --build
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: localhost/excalidraw-workspaces:latest
+    container_name: excalidraw-workspaces
+    restart: unless-stopped
+    # Bound to localhost: put a reverse proxy with HTTPS in front (see deploy/).
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Safe because only the local reverse proxy can reach the port above.
+      TRUST_PROXY: "true"
+      # ADMIN_HASH: "pick-a-10-to-16-char-alphanumeric-hash"  # optional; generated if unset
+      # TRASH_RETENTION_DAYS: "30"
+      # HASH_LENGTH: "12"
+    volumes:
+      - excalidraw-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+
+volumes:
+  excalidraw-data:
+    name: excalidraw-data

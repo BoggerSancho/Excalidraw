@@ -1,0 +1,25 @@
+# Quadlet unit: starts the container with systemd (rootless) on boot.
+#   cp deploy/excalidraw-workspaces.container ~/.config/containers/systemd/
+#   systemctl --user daemon-reload && systemctl --user start excalidraw-workspaces
+#   loginctl enable-linger "$USER"   # keep it running after logout
+[Unit]
+Description=Excalidraw Workspaces
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=localhost/excalidraw-workspaces:latest
+ContainerName=excalidraw-workspaces
+PublishPort=127.0.0.1:3000:3000
+Volume=excalidraw-data:/data
+Environment=TRUST_PROXY=true
+# Environment=ADMIN_HASH=pick-a-10-to-16-char-alphanumeric-hash
+HealthCmd=node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+HealthInterval=30s
+
+[Service]
+Restart=always
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
