@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { PanelNumberField } from "./PanelNumberField";
+import { fiberAncestors } from "./reactInternals";
 
 const GROUP = "font-size";
 
@@ -24,8 +25,6 @@ function currentSize(elements: readonly ExcalidrawElement[], appState: AppState)
   return sizes.size === 1 ? [...sizes][0] : null;
 }
 
-type FiberNode = { return: FiberNode | null; memoizedProps?: { group?: string; onChange?: unknown } };
-
 /**
  * Excalidraw's own font-size handler. Changing the size also re-measures the text, grows its
  * container and moves arrow labels, and none of that is exported, so the field calls the
@@ -33,9 +32,8 @@ type FiberNode = { return: FiberNode | null; memoizedProps?: { group?: string; o
  */
 function findFontSizeHandler(fieldset: HTMLFieldSetElement): ((size: number) => void) | null {
   const input = fieldset.querySelector(`input[name="${GROUP}"]`);
-  const key = input && Object.keys(input).find((k) => k.startsWith("__reactFiber$"));
-  let fiber = key ? ((input as unknown as Record<string, FiberNode>)[key] ?? null) : null;
-  for (; fiber; fiber = fiber.return) {
+  if (!input) return null;
+  for (const fiber of fiberAncestors(input)) {
     const props = fiber.memoizedProps;
     if (props?.group === GROUP && typeof props.onChange === "function") return props.onChange as (size: number) => void;
   }

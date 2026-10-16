@@ -5,6 +5,8 @@ import "@excalidraw/excalidraw/index.css";
 import { ApiError, workspaceApi, type SceneResponse, type SyncMode } from "../api";
 import { FileSync } from "./files";
 import { FontSizeInput } from "./FontSizeInput";
+import { restrictEraserToFreedraw } from "./freedrawOnlyEraser";
+import { enableMultiImageImport } from "./multiImageImport";
 import { PollingSync } from "./pollingSync";
 import { PreviewUploader } from "./preview";
 import { RealtimeSync } from "./realtimeSync";
@@ -108,6 +110,12 @@ export default function WorkspacePage({ hash }: { hash: string }) {
       if (controller.current === instance) controller.current = null;
     };
   }, [api, helpers, loaded, mode, gone, hash, http]);
+
+  useEffect(() => {
+    if (!api || !editorRoot) return;
+    const undo = [restrictEraserToFreedraw(editorRoot), enableMultiImageImport(editorRoot, api)];
+    return () => undo.forEach((fn) => fn());
+  }, [api, editorRoot]);
 
   useEffect(() => {
     if (username) controller.current?.setUsername(username);
