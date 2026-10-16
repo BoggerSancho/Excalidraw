@@ -4,9 +4,11 @@ import type { ExcalidrawImperativeAPI, ExcalidrawInitialDataState } from "@excal
 import "@excalidraw/excalidraw/index.css";
 import { ApiError, workspaceApi, type SceneResponse, type SyncMode } from "../api";
 import { FileSync } from "./files";
+import { FontSizeInput } from "./FontSizeInput";
 import { PollingSync } from "./pollingSync";
 import { PreviewUploader } from "./preview";
 import { RealtimeSync } from "./realtimeSync";
+import { StrokeWidthInput } from "./StrokeWidthInput";
 import { SceneTracker } from "./tracker";
 import type { PointerPayload, SyncController, SyncStatus } from "./types";
 
@@ -48,6 +50,7 @@ export default function WorkspacePage({ hash }: { hash: string }) {
   const [peers, setPeers] = useState(0);
   const [username, setUsername] = useState<string | null>(readUsername);
   const [editingName, setEditingName] = useState(false);
+  const [editorRoot, setEditorRoot] = useState<HTMLDivElement | null>(null);
   const controller = useRef<SyncController | null>(null);
   const firstController = useRef(true);
 
@@ -152,7 +155,7 @@ export default function WorkspacePage({ hash }: { hash: string }) {
     status === "live" ? `Live · ${peers} ${peers === 1 ? "person" : "people"}` : STATUS_LABEL[status];
 
   return (
-    <div className="editor-root">
+    <div className="editor-root" ref={setEditorRoot}>
       <Excalidraw
         excalidrawAPI={setApi}
         initialData={initialData}
@@ -176,6 +179,12 @@ export default function WorkspacePage({ hash }: { hash: string }) {
           </button>
         )}
       />
+      {api && editorRoot && (
+        <>
+          <StrokeWidthInput api={api} root={editorRoot} />
+          <FontSizeInput api={api} root={editorRoot} />
+        </>
+      )}
       {needsName && (
         <NameDialog
           initial={username ?? ""}
