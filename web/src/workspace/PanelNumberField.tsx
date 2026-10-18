@@ -24,10 +24,12 @@ type Props = {
 export function PanelNumberField({ root, group, label, value, min, max, onCommit, canReplace }: Props) {
   const host = useMemo(() => {
     const el = document.createElement("div");
-    el.className = "panel-number-field";
+    // While focus is inside `.properties-content`, Excalidraw's text editor doesn't take it back.
+    el.className = "panel-number-field properties-content";
     return el;
   }, []);
   const [draft, setDraft] = useState<string | null>(null);
+  const textEditor = () => root.querySelector<HTMLTextAreaElement>("textarea.excalidraw-wysiwyg");
 
   // The panel mounts and unmounts with the selection, so re-attach whenever it reappears.
   useEffect(() => {
@@ -59,14 +61,25 @@ export function PanelNumberField({ root, group, label, value, min, max, onCommit
         const next = Number(e.target.value);
         if (e.target.value !== "" && Number.isInteger(next) && next >= min && next <= max) onCommit(next);
       }}
-      // Focusing an input ends text editing as a plain blur, which drops the selection and
-      // closes this panel. Finishing with Escape instead keeps the text selected.
+      // Focusing an input would end text editing (and delete text that's still empty). Like
+      // Excalidraw does for its own panel buttons, pause the editor's blur handler for the
+      // click, so the text stays in editing and the new value applies to it.
       onPointerDown={() => {
-        const editor = root.querySelector<HTMLTextAreaElement>("textarea.excalidraw-wysiwyg");
-        editor?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        const editor = textEditor();
+        if (!editor?.onblur) return;
+        const submit = editor.onblur;
+        editor.onblur = null;
+        window.addEventListener("pointerup", () => setTimeout(() => (editor.onblur = submit)), { once: true });
       }}
       onBlur={() => setDraft(null)}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      // Enter goes back to the text being edited, if any, so typing can continue.
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const editor = textEditor();
+        if (editor) editor.focus();
+        else e.currentTarget.blur();
+      }}
     />,
     host,
   );
